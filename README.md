@@ -15,7 +15,8 @@
 ### Header files
 1. timer.h: Define the timer for the whole system.
 2. cpu.h: Define functions used to implement the virtual CPU
-3. queue.h: Functions used to implement queue which holds the PCB of processes struct (queue t) for a priority queue 
+3. queue.h: Functions used to implement queue which holds the PCB of processes 
+   - struct (queue t) for a priority queue 
 4. sched.h: Define functions used by the scheduler
 5. mem.h: Functions used by Virtual Memory Engine.
    - struct mem_stat
@@ -32,8 +33,7 @@
    - READ
    - WRITE
 3. queue.c: Implement operations on (priority) queues.
-   - enqueue() & dequeue():put a new PCB to the queue
-   - and get a PCB with the highest priority out of the queue
+   - enqueue() & dequeue():put a new PCB to the queue and get a PCB with the highest priority out of the queue
    - add_queue(): add process form loader to ready_queue
 4. paging.c: Use to check the functionality of Virtual Memory Engine.
 5. os.c: The whole OS starts running from this file.
