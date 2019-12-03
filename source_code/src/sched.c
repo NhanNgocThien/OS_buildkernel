@@ -1,4 +1,3 @@
-
 #include "queue.h"
 #include "sched.h"
 #include <pthread.h>
@@ -24,7 +23,17 @@ struct pcb_t * get_proc(void) {
 	 * [ready_queue] and return the highest priority one.
 	 * Remember to use lock to protect the queue.
 	 * */
-	return proc;
+    pthread_mutex_lock(&queue_lock);
+    proc = dequeue(&ready_queue);
+    if(proc == NULL) {
+        while(!empty(&run_queue)) {
+            struct pcb_t * newPCB = dequeue(&run_queue);
+            enqueue(&ready_queue, newPCB);
+        }
+        proc = dequeue(&ready_queue);
+    }
+	pthread_mutex_unlock(&queue_lock);
+    return proc;
 }
 
 void put_proc(struct pcb_t * proc) {
