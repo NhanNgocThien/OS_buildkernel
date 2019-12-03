@@ -42,7 +42,7 @@ static addr_t get_second_lv(addr_t addr) {
 static struct page_table_t * get_page_table(
 		addr_t index, 	// Segment level index
 		struct seg_table_t * seg_table) { // first level table
-	
+
 	/*
 	 * TODO: Given the Segment index [index], you must go through each
 	 * row of the segment table [seg_table] and check if the v_index
@@ -75,7 +75,7 @@ static int translate(
 	addr_t first_lv = get_first_lv(virtual_addr);
 	/* The second layer index */
 	addr_t second_lv = get_second_lv(virtual_addr);
-	
+
 	/* Search in the first level */
 	struct page_table_t * page_table = NULL;
 	page_table = get_page_table(first_lv, proc->seg_table);
@@ -87,15 +87,15 @@ static int translate(
 	for (i = 0; i < page_table->size; i++) {
 		if (page_table->table[i].v_index == second_lv) {
 			/* TODO: Concatenate the offset of the virtual addess
-			 * to [p_index] field of page_table->table[i] to 
+			 * to [p_index] field of page_table->table[i] to
 			 * produce the correct physical address and save it to
 			 * [*physical_addr]  */
 			addr_t temp = ((page_table->table[i].p_index<<10)|offset);
-			physical_address = &temp;
+			physical_addr = &temp;
 			return 1;
 		}
 	}
-	return 0;	
+	return 0;
 }
 
 addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
@@ -112,13 +112,24 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 
 	/* First we must check if the amount of free memory in
 	 * virtual address space and physical address space is
-	 * large enough to represent the amount of required 
+	 * large enough to represent the amount of required
 	 * memory. If so, set 1 to [mem_avail].
 	 * Hint: check [proc] bit in each page of _mem_stat
 	 * to know whether this page has been used by a process.
 	 * For virtual memory space, check bp (break pointer).
 	 * */
-	
+	 int free = 0;
+	 //Check the physical memory
+	 for(int i = 0; i< NUM_PAGES; i++)
+	 {
+		 if(_mem_stat[i].proc == 0){
+			 free++;
+		 }
+		 if(free == num_pages){
+			 mem_avail = 1;
+			 break;
+		 }
+	 }
 	if (mem_avail) {
 		/* We could allocate new memory region to the process */
 		ret_mem = proc->bp;
@@ -143,7 +154,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 	 * 	  the process [proc].
 	 * 	- Remember to use lock to protect the memory from other
 	 * 	  processes.  */
-	
+
 	return 0;
 }
 
@@ -183,14 +194,12 @@ void dump(void) {
 			for (	j = i << OFFSET_LEN;
 				j < ((i+1) << OFFSET_LEN) - 1;
 				j++) {
-				
+
 				if (_ram[j] != 0) {
 					printf("\t%05x: %02x\n", j, _ram[j]);
 				}
-					
+
 			}
 		}
 	}
 }
-
-
