@@ -120,16 +120,16 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 	 * */
 	 int free = 0;
 	 //Check the physical memory
-	 for(int i = 0; i< NUM_PAGES; i++)
-	 {
-		 if(_mem_stat[i].proc == 0){
-			 free++;
-		 }
-		 if(free == num_pages){
-			 mem_avail = 1;
-			 break;
-		 }
+	 if(0x100000 - proc->bp >= num_pages * PAGE_SIZE){
+	 	for(int i = 0; i< NUM_PAGES; i++) {
+		 	if(free == num_pages) {
+				 	mem_avail = 1;
+				 	break;
+			}
+		 	else if(_mem_stat[i].proc == 0)
+		 	free++;
 	 }
+ }
 	if (mem_avail) {
 		/* We could allocate new memory region to the process */
 		ret_mem = proc->bp;
@@ -140,7 +140,31 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		 * 	- Add entries to segment table page tables of [proc]
 		 * 	  to ensure accesses to allocated memory slot is
 		 * 	  valid. */
-	}
+		 int empty_page = 0;
+		 int temp_index = 0;
+		for (int i = 0; i < num_pages; i++){
+			addr_t segment_index = get_first_lv(ret_mem + i*PAGE_SIZE);
+			addr_t table_index = get_second_lv(ret_mem + i*PAGE_SIZE);
+			struct page_table_t * page_table = NULL;
+			page_table = get_page_table(segment_index, proc->seg_table);
+			for (int j = 0; j <= 1 << SEGMENT_LEN ; j++){
+				page_table->table[j].v_index = j;
+				while(empty_page<NUM_PAGES) {
+					if (_mem_stat[empty_page].proc == 0) {
+						page_table->table[j].p_index = empty_page;
+						empty_page++;
+						_mem_stat[empty_page].proc = proc->pid;
+						_mem_stat[empty_page].index = i;
+						if (i >= 1) {
+							_mem_stat[temp_index].next = empty_page;
+						}
+						if (i == num_pages - 1) _mem_stat[empty_page].next = -1;
+						temp_index = empty_page;
+					}
+				}
+			}
+		}
+}
 	pthread_mutex_unlock(&mem_lock);
 	return ret_mem;
 }
@@ -154,7 +178,25 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 	 * 	  the process [proc].
 	 * 	- Remember to use lock to protect the memory from other
 	 * 	  processes.  */
-
+	 pthread_mutex_lock(&mem_lock);
+	 addr_t physical_addr;
+	 if (translate(address, &physical_addr, proc)) {
+		 addr_t _mem_stat_index = get_second_lv(physical_addr);
+		 while(_mem_stat[_mem_stat_index].proc == proc->pid){
+			 addr_t temp_index = _mem_stat_index;
+			 _mem_stat[_mem_stat_index].proc = 0;
+			 _mem_stat[_mem_stat_index].index = 0;
+			 _mem_stat_index = _mem_stat[_mem_stat_index].next;
+			 _mem_stat[temp_index].next = 0;
+		 }
+	 }
+	 addr_t segment_index = get_first_lv(address);
+	 addr_t table_index = get_second_lv(address);
+	 struct page_table_t * page_table = NULL;
+	 page_table = get_page_table(segment_index, proc->seg_table);
+	 page_table->table[table_index].p_index = 0;
+	 page_table = NULL;
+	 pthread_mutex_unlock(&mem_lock);
 	return 0;
 }
 
