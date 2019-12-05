@@ -7,6 +7,7 @@
 
 static BYTE _ram[RAM_SIZE];
 
+
 static struct {
 	uint32_t proc;	// ID of process currently uses this page
 	int index;	// Index of the page in the list of pages allocated
