@@ -122,7 +122,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 	 //Check the physical memory
 	 if(0x100000 - proc->bp >= num_pages * PAGE_SIZE){
 	 	for(int i = 0; i< NUM_PAGES; i++) {
-		 	if(free == num_pages) {
+		 	if(free >= num_pages) {
 				 	mem_avail = 1;
 				 	break;
 			}
@@ -134,6 +134,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		/* We could allocate new memory region to the process */
 		ret_mem = proc->bp;
 		proc->bp += num_pages * PAGE_SIZE;
+
 		/* Update status of physical pages which will be allocated
 		 * to [proc] in _mem_stat. Tasks to do:
 		 * 	- Update [proc], [index], and [next] field
@@ -146,7 +147,8 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 			addr_t segment_index = get_first_lv(ret_mem + i*PAGE_SIZE);
 			addr_t table_index = get_second_lv(ret_mem + i*PAGE_SIZE);
 			struct page_table_t * page_table = NULL;
-			page_table = get_page_table(segment_index, proc->seg_table);
+			//page_table = get_page_table(segment_index, proc->seg_table);
+			page_table = proc->seg_table->table[segment_index].pages;
 			for (int j = 0; j <= 1 << SEGMENT_LEN ; j++){
 				page_table->table[j].v_index = j;
 				while(empty_page<NUM_PAGES) {
@@ -160,6 +162,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 						}
 						if (i == num_pages - 1) _mem_stat[empty_page].next = -1;
 						temp_index = empty_page;
+						break;
 					}
 				}
 			}
@@ -181,7 +184,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 	 pthread_mutex_lock(&mem_lock);
 	 addr_t physical_addr;
 	 if (translate(address, &physical_addr, proc)) {
-		 addr_t _mem_stat_index = get_second_lv(physical_addr);
+		 addr_t _mem_stat_index = physical_addr>>10;
 		 while(_mem_stat[_mem_stat_index].proc == proc->pid){
 			 addr_t temp_index = _mem_stat_index;
 			 _mem_stat[_mem_stat_index].proc = 0;
@@ -195,6 +198,8 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 	 struct page_table_t * page_table = NULL;
 	 page_table = get_page_table(segment_index, proc->seg_table);
 	 page_table->table[table_index].p_index = 0;
+	 page_table->size--;
+	 proc->seg_table->size--;
 	 page_table = NULL;
 	 pthread_mutex_unlock(&mem_lock);
 	return 0;
