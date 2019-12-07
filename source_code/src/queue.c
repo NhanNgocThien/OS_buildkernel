@@ -17,14 +17,14 @@ void enqueue(struct queue_t * q, struct pcb_t * proc) {
         int i = 0,
             pos = 0;
         uint32_t highest_prior = proc->priority;
-        if(highest_prior > q->proc[0]->priority) {
+        if(highest_prior >= q->proc[0]->priority) {
             memmove(q->proc + 1, q->proc, sizeof(proc)*q->size);
             q->proc[0] = proc;
             q->size++;
             return;
         }
         while(i < q->size - 1) {
-            if(highest_prior > q->proc[i + 1]->priority) {
+            if(highest_prior >= q->proc[i + 1]->priority) {
                 pos = i + 1;
                 memmove(q->proc + pos + 1, q->proc + pos, sizeof(proc)*(q->size - pos));
                 q->proc[pos] = proc;
