@@ -50,8 +50,11 @@ test_sched:
 	@echo ------ SCHEDULING TEST 0 -------------------------------------------
 	./os sched_0
 	@echo NOTE: Read file output/sched_0 to verify your result
-	@echo ------ SCHEDULING TEST 1 -------------------------------------------
+	@echo ------ SCHEDULING TEST 1 
+	-------------------------------------------
+	./os sched_1
 	@echo -----  SCHEDULING TEST 2 -------------------------------------------
+	./os sched_2
 	@echo NOTE: Read file output/sched_1 to verify your result
 	
 test_os:

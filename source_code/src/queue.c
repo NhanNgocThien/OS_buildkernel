@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "queue.h"
+#include <string.h>
 
 int empty(struct queue_t * q) {
 	return (q->size == 0);
