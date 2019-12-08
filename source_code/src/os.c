@@ -85,8 +85,8 @@ static void * ld_routine(void * args) {
 		while (current_time() < ld_processes.start_time[i]) {
 			next_slot(timer_id);
 		}
-		printf("\tLoaded a process at %s, PID: %d\n",
-			ld_processes.path[i], proc->pid);
+		printf("\tLoaded a process at %s, PID: %d, Priority: %d\n",
+			ld_processes.path[i], proc->pid, proc->priority);
 		add_proc(proc);
 		free(ld_processes.path[i]);
 		i++;
