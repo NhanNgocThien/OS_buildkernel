@@ -24,6 +24,7 @@ static void * timer_routine(void * args) {
 		int event = 0;
 		/* Wait for all devices have done the job in current
 		 * time slot */
+		printf("Time slot %3lu\n", current_time());
 		struct timer_id_container_t * temp;
 		for (temp = dev_list; temp != NULL; temp = temp->next) {
 			pthread_mutex_lock(&temp->id.event_lock);
@@ -42,7 +43,7 @@ static void * timer_routine(void * args) {
 
 		/* Increase the time slot */
 		_time++;
-		printf("Time slot %3lu\n", current_time());
+		// printf("Time slot %3lu\n", current_time());
 		/* Let devices continue their job */
 		for (temp = dev_list; temp != NULL; temp = temp->next) {
 			pthread_mutex_lock(&temp->id.timer_lock);
