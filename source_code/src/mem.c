@@ -229,7 +229,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 	}
 	int temp_num_free_pages = num_free_pages;
 	if(address + temp_num_free_pages*PAGE_SIZE == proc->bp ){
-		while (proc->seg_table->table[proc->seg_table->size-1].pages->size < temp_num_free_pages){
+		while (proc->seg_table->table[proc->seg_table->size-1].pages->size <= temp_num_free_pages){
 			temp_num_free_pages -= proc->seg_table->table[proc->seg_table->size-1].pages->size;
 			proc->seg_table->table[proc->seg_table->size-1].pages->size = 0;
 			free(proc->seg_table->table[proc->seg_table->size-1].pages);
@@ -237,12 +237,6 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 		}
 		if(temp_num_free_pages > 0){
 			proc->seg_table->table[proc->seg_table->size-1].pages->size -= temp_num_free_pages;
-		}
-
-		while (proc->seg_table->table[proc->seg_table->size-1].pages->size == 0){
-			free(proc->seg_table->table[proc->seg_table->size-1].pages);
-			proc->seg_table->table[proc->seg_table->size-1].pages = NULL;
-			proc->seg_table->size--;	
 		}
 		proc->bp = address;
 	}
