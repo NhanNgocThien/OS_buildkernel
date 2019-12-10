@@ -228,53 +228,41 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 	 	}
 	}
 	int temp_num_free_pages = num_free_pages;
-	if(address + temp_num_free_pages*PAGE_SIZE == proc->bp ){
-		while (proc->seg_table->table[proc->seg_table->size-1].pages->size <= temp_num_free_pages){
-			temp_num_free_pages -= proc->seg_table->table[proc->seg_table->size-1].pages->size;
-			proc->seg_table->table[proc->seg_table->size-1].pages->size = 0;
-			free(proc->seg_table->table[proc->seg_table->size-1].pages);
-			proc->seg_table->size--;
+	for (int i = 0; i < num_free_pages; i++){
+		addr_t first_lv = get_first_lv(address + i*PAGE_SIZE);
+		addr_t second_lv = get_second_lv(address + i*PAGE_SIZE);
+		struct page_table_t * page_table = NULL;
+		page_table = get_page_table(first_lv, proc->seg_table);
+		if (page_table == NULL){
+			pthread_mutex_unlock(&mem_lock);
+			return 0;
 		}
-		if(temp_num_free_pages > 0){
-			proc->seg_table->table[proc->seg_table->size-1].pages->size -= temp_num_free_pages;
-		}
-		proc->bp = address;
-	}
-	else {
-		for (int i = 0; i < num_free_pages; i++){
-			addr_t first_lv = get_first_lv(address + i*PAGE_SIZE);
-			addr_t second_lv = get_second_lv(address + i*PAGE_SIZE);
-			struct page_table_t * page_table = NULL;
-			page_table = get_page_table(first_lv, proc->seg_table);
-			if (page_table == NULL){
-				pthread_mutex_unlock(&mem_lock);
-				return 0;
-			}
-			for (int j = 0; j < page_table->size; j++) {
-				if (page_table->table[j].v_index == second_lv) {
-					page_table->table[j].v_index = page_table->table[page_table->size - 1].v_index;
-					page_table->table[j].p_index = page_table->table[page_table->size - 1].p_index;
-					page_table->table[page_table->size - 1].v_index = 0;
-					page_table->table[page_table->size - 1].p_index = 0;
-					page_table->size --;
-					if (page_table->size == 0) {
-						for (int index = 0; index < proc->seg_table->size; index++){
-							if (page_table == proc->seg_table->table[index].pages){
-								free(proc->seg_table->table[index].pages);
-								proc->seg_table->table[index].pages  = proc->seg_table->table[proc->seg_table->size-1].pages;
-								proc->seg_table->table[index].v_index = proc->seg_table->table[proc->seg_table->size-1].v_index;
-								proc->seg_table->table[index] = proc->seg_table->table[proc->seg_table->size-1];
-								proc->seg_table->table[proc->seg_table->size-1].pages = NULL;
-								proc->seg_table->size--;
-								break;
-							}
+		for (int j = 0; j < page_table->size; j++) {
+			if (page_table->table[j].v_index == second_lv) {
+				page_table->table[j].v_index = page_table->table[page_table->size - 1].v_index;
+				page_table->table[j].p_index = page_table->table[page_table->size - 1].p_index;
+				page_table->table[page_table->size - 1].v_index = 0;
+				page_table->table[page_table->size - 1].p_index = 0;
+				page_table->size --;
+				if (page_table->size == 0) {
+					for (int index = 0; index < proc->seg_table->size; index++){
+						if (page_table == proc->seg_table->table[index].pages){
+							free(proc->seg_table->table[index].pages);
+							proc->seg_table->table[index].pages  = proc->seg_table->table[proc->seg_table->size-1].pages;
+							proc->seg_table->table[index].v_index = proc->seg_table->table[proc->seg_table->size-1].v_index;
+							proc->seg_table->table[index] = proc->seg_table->table[proc->seg_table->size-1];
+							proc->seg_table->table[proc->seg_table->size-1].pages = NULL;
+							proc->seg_table->size--;
+							break;
 						}
 					}
-					break;
 				}
+				break;
 			}
-		}
+		}		
 	}
+	if(address + temp_num_free_pages*PAGE_SIZE == proc->bp ) 	proc->bp = address;
+	//}
 	if(PRINT_MEM){
 		printf("\033[1;33m\n_________FREE___________  %d pages __ PID:%d\n\033[0m",num_free_pages ,proc->pid);
 		printf("  \033[1;33mBreak pointer: %d\033[0m\n",(proc->bp>>10));	
