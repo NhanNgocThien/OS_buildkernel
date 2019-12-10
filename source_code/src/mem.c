@@ -172,23 +172,33 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 			page_table->size ++;
 		}
 	}
-	printf("\n_________ALLOCATE___________  %d pages\n",num_pages);
-	printf("  Break pointer: %d\n",(proc->bp>>10));	
-	printf("	Pages used in memory: \n");
-	printf("	");
-	for (int i =0 ; i<NUM_PAGES; i++)
-	if (_mem_stat[i].proc!=0) printf("%d  ",i);
-	
-	printf("\n");
-	printf("	Segments used in virtual: \n");
-	for (int i = 0; i<proc->seg_table->size; i++) 
-	{
-		printf("	+ Seg: %d\n", i);
-		printf("		Pages: ");
-		for (int j = 0; j<proc->seg_table->table[i].pages->size ; j++)
-		printf("%d(%d,%d)  ", j, proc->seg_table->table[i].pages->table[j].v_index , proc->seg_table->table[i].pages->table[j].p_index);
-		printf("\n\n");
+
+	if(PRINT_MEM){
+		printf("\033[1;32m\n_________ALLOCATE___________  %d pages __ PID:%d\n\033[0m",num_pages,proc->pid);
+		printf("  \033[1;32mBreak pointer: %d\033[0m\n",(proc->bp>>10));	
+		printf("	\033[1;32mPages used in memory: \n\033[0m");
+		printf("	");
+		for (int i =0 ; i<NUM_PAGES; i++)
+		if (_mem_stat[i].proc!=0) printf("%d  ",i);
+		
+		printf("\n");
+		printf("	\033[1;32mSegments used in virtual: \n\033[0m");
+		for (int i = 0; i<proc->seg_table->size; i++) 
+		{
+			if (proc->seg_table->table[i].pages != NULL){
+				printf("	\033[1;32m+ Seg: %d\n\033[0m", i);
+				printf("		Pages: ");
+				for (int j = 0; j<proc->seg_table->table[i].pages->size ; j++)
+				printf("%d(%d,%d)  ", 
+					j, 
+					proc->seg_table->table[i].pages->table[j].v_index , 
+					proc->seg_table->table[i].pages->table[j].p_index
+				);
+				printf("\n\n");
+			}
+		}
 	}
+
 	pthread_mutex_unlock(&mem_lock);
 	return ret_mem;
 }
@@ -217,21 +227,22 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 			if(_mem_stat_index == -1) break;
 	 	}
 	}
-	struct page_table_t * page_table = NULL;
-	addr_t max = 0;
-	for (int i = 0; i < 10; i++){
-		if (proc->regs[i] > max) max = proc->regs[i] ;
-	}
-
-	if(address + num_free_pages*PAGE_SIZE == proc->bp ){
-		while (proc->seg_table->table[proc->seg_table->size-1].pages->size < num_free_pages){
-			num_free_pages -= proc->seg_table->table[proc->seg_table->size-1].pages->size;
+	int temp_num_free_pages = num_free_pages;
+	if(address + temp_num_free_pages*PAGE_SIZE == proc->bp ){
+		while (proc->seg_table->table[proc->seg_table->size-1].pages->size < temp_num_free_pages){
+			temp_num_free_pages -= proc->seg_table->table[proc->seg_table->size-1].pages->size;
 			proc->seg_table->table[proc->seg_table->size-1].pages->size = 0;
 			free(proc->seg_table->table[proc->seg_table->size-1].pages);
 			proc->seg_table->size--;
 		}
-		if(num_free_pages > 0){
-			proc->seg_table->table[proc->seg_table->size-1].pages->size -= num_free_pages;
+		if(temp_num_free_pages > 0){
+			proc->seg_table->table[proc->seg_table->size-1].pages->size -= temp_num_free_pages;
+		}
+
+		while (proc->seg_table->table[proc->seg_table->size-1].pages->size == 0){
+			free(proc->seg_table->table[proc->seg_table->size-1].pages);
+			proc->seg_table->table[proc->seg_table->size-1].pages = NULL;
+			proc->seg_table->size--;	
 		}
 		proc->bp = address;
 	}
@@ -239,7 +250,12 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 		for (int i = 0; i < num_free_pages; i++){
 			addr_t first_lv = get_first_lv(address + i*PAGE_SIZE);
 			addr_t second_lv = get_second_lv(address + i*PAGE_SIZE);
+			struct page_table_t * page_table = NULL;
 			page_table = get_page_table(first_lv, proc->seg_table);
+			if (page_table == NULL){
+				pthread_mutex_unlock(&mem_lock);
+				return 0;
+			}
 			for (int j = 0; j < page_table->size; j++) {
 				if (page_table->table[j].v_index == second_lv) {
 					page_table->table[j].v_index = page_table->table[page_table->size - 1].v_index;
@@ -247,27 +263,48 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 					page_table->table[page_table->size - 1].v_index = 0;
 					page_table->table[page_table->size - 1].p_index = 0;
 					page_table->size --;
+					if (page_table->size == 0) {
+						for (int index = 0; index < proc->seg_table->size; index++){
+							if (page_table == proc->seg_table->table[index].pages){
+								free(proc->seg_table->table[index].pages);
+								proc->seg_table->table[index].pages  = proc->seg_table->table[proc->seg_table->size-1].pages;
+								proc->seg_table->table[index].v_index = proc->seg_table->table[proc->seg_table->size-1].v_index;
+								proc->seg_table->table[index] = proc->seg_table->table[proc->seg_table->size-1];
+								proc->seg_table->table[proc->seg_table->size-1].pages = NULL;
+								proc->seg_table->size--;
+								break;
+							}
+						}
+					}
 					break;
 				}
 			}
 		}
 	}
-	printf("\n_________DELETE___________ %d pages\n",num_free_pages);
-	printf("  Break pointer: %d\n",(proc->bp>>10));	
-	printf("	Pages used in memory: \n");
-	printf("	");
-	for (int i =0 ; i<NUM_PAGES; i++)
-	if (_mem_stat[i].proc!=0) printf("%d  ",i);
-	
-	printf("\n");
-	printf("	Segments used in virtual: \n");
-	for (int i = 0; i<proc->seg_table->size; i++) 
-	{
-		printf("	+ Seg: %d\n", i);
-		printf("	    Pages: ");
-		for (int j = 0; j<proc->seg_table->table[i].pages->size ; j++)
-		printf("%d(%d,%d)  ", j, proc->seg_table->table[i].pages->table[j].v_index , proc->seg_table->table[i].pages->table[j].p_index);
-		printf("\n\n");
+	if(PRINT_MEM){
+		printf("\033[1;33m\n_________FREE___________  %d pages __ PID:%d\n\033[0m",num_free_pages ,proc->pid);
+		printf("  \033[1;33mBreak pointer: %d\033[0m\n",(proc->bp>>10));	
+		printf("	\033[1;33mPages used in memory: \n\033[0m");
+		printf("	");
+		for (int i =0 ; i<NUM_PAGES; i++)
+		if (_mem_stat[i].proc!=0) printf("%d  ",i);
+		
+		printf("\n");
+		printf("	\033[1;33mSegments used in virtual: \n\033[0m");
+		for (int i = 0; i<proc->seg_table->size; i++) 
+		{
+			if (proc->seg_table->table[i].pages != NULL){
+				printf("	\033[1;33m+ Seg: %d\n\033[0m", i);
+				printf("		Pages: ");
+				for (int j = 0; j<proc->seg_table->table[i].pages->size ; j++)
+				printf("%d(%d,%d)  ",
+					j, 
+					proc->seg_table->table[i].pages->table[j].v_index ,
+					proc->seg_table->table[i].pages->table[j].p_index
+				);
+				printf("\n\n");
+			}
+		}
 	}
 	pthread_mutex_unlock(&mem_lock);
 	return 0;
@@ -312,8 +349,7 @@ void dump(void) {
 				
 				if (_ram[j] != 0) {
 					printf("\t%05x: %03x\n", j, _ram[j]);
-				}
-					
+				}	
 			}
 		}
 	}

@@ -10,11 +10,16 @@
 #define SEGMENT_LEN	5
 #define PAGE_LEN	5
 
+#define PRINT_MEM  1
+#define PRINT_SCHED  0
+
 #define NUM_PAGES	(1 << (ADDRESS_SIZE - OFFSET_LEN))
 #define PAGE_SIZE	(1 << OFFSET_LEN)
 
 typedef char BYTE;
 typedef uint32_t addr_t;
+
+
 
 enum ins_opcode_t {
 	CALC,	// Just perform calculation, only use CPU
