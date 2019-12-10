@@ -47,9 +47,7 @@ static struct page_table_t * get_page_table(
 	 * TODO: Given the Segment index [index], you must go through each
 	 * row of the segment table [seg_table] and check if the v_index
 	 * field of the row is equal to the index
-	 *
-	 * */
-
+	*/
 	int i;
 	for (i = 0; i < seg_table->size; i++) {
 		// Enter your code here
@@ -58,7 +56,6 @@ static struct page_table_t * get_page_table(
 		}
 	}
 	return NULL;
-
 }
 
 /* Translate virtual address to physical address. If [virtual_addr] is valid,
@@ -84,6 +81,7 @@ static int translate(
 	}
 
 	int i;
+	if (first_lv + second_lv == 0) return 0;
 	for (i = 0; i < page_table->size; i++) {
 		if (page_table->table[i].v_index == second_lv) {
 			/* TODO: Concatenate the offset of the virtual addess
@@ -148,14 +146,23 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		for (int i = 0; i < num_pages; i++){
 			addr_t segment_index = get_first_lv(ret_mem + i*PAGE_SIZE);
 			addr_t table_index = get_second_lv(ret_mem + i*PAGE_SIZE);
-			if (proc->seg_table->table[proc->seg_table->size - 1].pages->size > ((1<<SEGMENT_LEN)-1) || segment_index != proc->seg_table->table[proc->seg_table->size - 1].v_index ){
+			struct page_table_t * page_table = NULL;
+			page_table = get_page_table(segment_index,proc->seg_table);
+			if(page_table == NULL){
 				proc->seg_table->table[proc->seg_table->size].pages	= (struct page_table_t*)malloc(sizeof(struct page_table_t));
 				proc->seg_table->table[proc->seg_table->size].v_index = segment_index;
 				proc->seg_table->table[proc->seg_table->size].pages->size = 0; 
 				proc->seg_table->size ++;
+				page_table = proc->seg_table->table[proc->seg_table->size-1].pages;
 			}
-			struct page_table_t * page_table = NULL;
-			page_table = proc->seg_table->table[proc->seg_table->size-1].pages;
+			else if (page_table->size > ((1<<SEGMENT_LEN)-1)){
+				proc->seg_table->table[proc->seg_table->size].pages	= (struct page_table_t*)malloc(sizeof(struct page_table_t));
+				proc->seg_table->table[proc->seg_table->size].v_index = segment_index;
+				proc->seg_table->table[proc->seg_table->size].pages->size = 0; 
+				proc->seg_table->size ++;
+				page_table = proc->seg_table->table[proc->seg_table->size-1].pages;
+			}
+			
 			page_table->table[page_table->size].v_index = table_index;
 			while(empty_page < NUM_PAGES) {
 				if (_mem_stat[empty_page].proc == 0) {
