@@ -155,13 +155,6 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 				proc->seg_table->size ++;
 				page_table = proc->seg_table->table[proc->seg_table->size-1].pages;
 			}
-			else if (page_table->size > ((1<<SEGMENT_LEN)-1)){
-				proc->seg_table->table[proc->seg_table->size].pages	= (struct page_table_t*)malloc(sizeof(struct page_table_t));
-				proc->seg_table->table[proc->seg_table->size].v_index = segment_index;
-				proc->seg_table->table[proc->seg_table->size].pages->size = 0; 
-				proc->seg_table->size ++;
-				page_table = proc->seg_table->table[proc->seg_table->size-1].pages;
-			}
 			
 			page_table->table[page_table->size].v_index = table_index;
 			while(empty_page < NUM_PAGES) {
@@ -193,7 +186,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		for (int i = 0; i<proc->seg_table->size; i++) 
 		{
 			if (proc->seg_table->table[i].pages != NULL){
-				printf("	\033[1;32m+ Seg: %d\n\033[0m", i);
+				printf("	\033[1;32m+ Seg: %d - %d\n\033[0m", i, proc->seg_table->table[i].v_index);
 				printf("		Pages: ");
 				for (int j = 0; j<proc->seg_table->table[i].pages->size ; j++)
 				printf("%d(%d,%d)  ", 
@@ -234,7 +227,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 			if(_mem_stat_index == -1) break;
 	 	}
 	}
-	int temp_num_free_pages = num_free_pages;
+
 	for (int i = 0; i < num_free_pages; i++){
 		addr_t first_lv = get_first_lv(address + i*PAGE_SIZE);
 		addr_t second_lv = get_second_lv(address + i*PAGE_SIZE);
@@ -268,7 +261,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 			}
 		}		
 	}
-	if(address + temp_num_free_pages*PAGE_SIZE == proc->bp ) 	proc->bp = address;
+	if(address + num_free_pages*PAGE_SIZE == proc->bp ) 	proc->bp = address;
 	//}
 	if(PRINT_MEM){
 		printf("\033[1;33m\n_________FREE___________  %d pages __ PID:%d\n\033[0m",num_free_pages ,proc->pid);
@@ -283,7 +276,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 		for (int i = 0; i<proc->seg_table->size; i++) 
 		{
 			if (proc->seg_table->table[i].pages != NULL){
-				printf("	\033[1;33m+ Seg: %d\n\033[0m", i);
+				printf("	\033[1;33m+ Seg: %d - %d\n\033[0m", i, proc->seg_table->table[i].v_index);
 				printf("		Pages: ");
 				for (int j = 0; j<proc->seg_table->table[i].pages->size ; j++)
 				printf("%d(%d,%d)  ",
