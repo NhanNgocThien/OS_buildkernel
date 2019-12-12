@@ -25,6 +25,8 @@ int read_mem(addr_t address, struct pcb_t * proc, BYTE * data);
  * [proc]. If given [address] is valid, return 0. Otherwise, return 1 */
 int write_mem(addr_t address, struct pcb_t * proc, BYTE data);
 
+void terminate_process(struct pcb_t * proc);
+
 void dump(void);
 
 #endif

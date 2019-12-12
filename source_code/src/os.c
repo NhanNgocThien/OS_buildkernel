@@ -41,6 +41,7 @@ static void * cpu_routine(void * args) {
 			/* The porcess has finish it job */
 			printf("\tCPU %d: Processed %2d has finished\n",
 				id ,proc->pid);
+			TERMINATE_PROC(terminate_process(proc));
 			free(proc);
 			proc = get_proc();
 			time_left = 0;
@@ -85,9 +86,9 @@ static void * ld_routine(void * args) {
 		while (current_time() < ld_processes.start_time[i]) {
 			next_slot(timer_id);
 		}
-		add_proc(proc);
 		printf("\tLoaded a process at %s, PID: %d\n",
 			ld_processes.path[i], proc->pid);
+		add_proc(proc);
 		free(ld_processes.path[i]);
 		i++;
 		next_slot(timer_id);

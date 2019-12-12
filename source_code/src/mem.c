@@ -114,6 +114,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 	 * to know whether this page has been used by a process.
 	 * For virtual memory space, check bp (break pointer).
 	 * */
+
 	int empty_page = 0;
 	if ( NUM_PAGES - (proc->bp>>OFFSET_LEN) >= num_pages){
 		for (int i = 0; i < NUM_PAGES; i++){
@@ -173,7 +174,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		}
 	}
 
-	if(PRINT_MEM){
+	PRINT_MEM(
 		printf("\033[1;32m\n_________ALLOCATE___________  %d pages __ PID:%d\n\033[0m",num_pages,proc->pid);
 		printf("  \033[1;32mBreak pointer: %d\033[0m\n",(proc->bp>>10));	
 		printf("	\033[1;32mPages used in memory: \n\033[0m");
@@ -197,7 +198,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 				printf("\n\n");
 			}
 		}
-	}
+	)
 
 	pthread_mutex_unlock(&mem_lock);
 	return ret_mem;
@@ -226,6 +227,10 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 			num_free_pages++;
 			if(_mem_stat_index == -1) break;
 	 	}
+	}
+	else {
+		pthread_mutex_unlock(&mem_lock);
+		return 0;
 	}
 
 	for (int i = 0; i < num_free_pages; i++){
@@ -263,7 +268,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 	}
 	if(address + num_free_pages*PAGE_SIZE == proc->bp ) 	proc->bp = address;
 	//}
-	if(PRINT_MEM){
+	PRINT_MEM(
 		printf("\033[1;33m\n_________FREE___________  %d pages __ PID:%d\n\033[0m",num_free_pages ,proc->pid);
 		printf("  \033[1;33mBreak pointer: %d\033[0m\n",(proc->bp>>10));	
 		printf("	\033[1;33mPages used in memory: \n\033[0m");
@@ -287,7 +292,7 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 				printf("\n\n");
 			}
 		}
-	}
+	)
 	pthread_mutex_unlock(&mem_lock);
 	return 0;
 }
@@ -310,6 +315,10 @@ int write_mem(addr_t address, struct pcb_t * proc, BYTE data) {
 	}else{
 		return 1;
 	}
+}
+
+void terminate_process(struct pcb_t * proc){
+	for (int i = 0; i < 10; i++) free_mem(proc->regs[i], proc);
 }
 
 void dump(void) {

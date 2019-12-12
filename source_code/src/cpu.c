@@ -7,6 +7,7 @@ static int calc(struct pcb_t * proc) {
 }
 
 static int alloc(struct pcb_t * proc, uint32_t size, uint32_t reg_index) {
+	REALLOCATION(if (proc->regs[reg_index] != 0) free_mem(proc->regs[reg_index], proc);)
 	addr_t addr = alloc_mem(size, proc);
 	if (addr == 0) {
 		return 1;
@@ -17,7 +18,9 @@ static int alloc(struct pcb_t * proc, uint32_t size, uint32_t reg_index) {
 }
 
 static int free_data(struct pcb_t * proc, uint32_t reg_index) {
-	return free_mem(proc->regs[reg_index], proc);
+	int return_free = free_mem(proc->regs[reg_index], proc);
+	REALLOCATION(proc->regs[reg_index] = 0;)
+	return return_free;
 }
 
 static int read(

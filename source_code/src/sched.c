@@ -27,14 +27,14 @@ struct pcb_t * get_proc(void) {
 	struct pcb_t * proc = NULL;
 	pthread_mutex_lock(&queue_lock);
     if(empty(&ready_queue) && !empty(&run_queue)){
-		if (PRINT_SCHED){
+		PRINT_SCHED(
 			printf("\t-----------Ready Queue Empty------------\n");
 			printf("\t\tRun queue - size %d ; PID/Priority:  ", run_queue.size);
 			for(int j = 0; j < run_queue.size; j++) {
 				if(j < run_queue.size - 1) printf("%d-%d -> ", run_queue.proc[j]->pid, run_queue.proc[j]->priority);
 				else printf("%d-%d\n", run_queue.proc[j]->pid, run_queue.proc[j]->priority);
 			}
-		}
+		)
 		
 		int i = 0;
 		while(i < run_queue.size) {
@@ -45,26 +45,26 @@ struct pcb_t * get_proc(void) {
 		ready_queue.size = run_queue.size;
 		run_queue.size = 0;
 
-		if (PRINT_SCHED){
+		PRINT_SCHED(
 			printf("\t-----------Ready Queue Pushed------------\n");
 			printf("\t\tReady queue - size %d ; PID/Priority:  ", ready_queue.size);
 			for(int j = 0; j < ready_queue.size; j++) {
 				if(j < ready_queue.size - 1) printf("%d-%d -> ", ready_queue.proc[j]->pid, ready_queue.proc[j]->priority);
 				else printf("%d-%d\n", ready_queue.proc[j]->pid, ready_queue.proc[j]->priority);
 			}
-		}
+		)
 
 		proc = dequeue(&ready_queue);		
     }
     else if(!empty(&ready_queue)){
-		if (PRINT_SCHED){
+		PRINT_SCHED(
 			printf("\t-----------Ready Queue Status------------\n");
 			printf("\t\tReady queue - size %d ; PID/Priority:  ", ready_queue.size);
 			for(int j = 0; j < ready_queue.size; j++) {
 				if(j < ready_queue.size - 1) printf("%d-%d -> ", ready_queue.proc[j]->pid, ready_queue.proc[j]->priority);
 				else printf("%d-%d\n", ready_queue.proc[j]->pid, ready_queue.proc[j]->priority);
 			}
-		}
+		)
 		
 		proc = dequeue(&ready_queue);	
 	}
